@@ -44,21 +44,24 @@ const retryOperation = async <T>(
       return await fn();
     } catch (error: any) {
       const msg = error.message || '';
-      // Check for overload or rate limit errors
-      const isOverloaded = 
+      // Check for overload, rate limit, or internal server errors
+      const isRetryable = 
         msg.includes('overloaded') || 
+        msg.includes('internal server issue') ||
         msg.includes('429') || 
         msg.includes('503') ||
+        msg.includes('500') ||
         error.status === 429 ||
-        error.status === 503;
+        error.status === 503 ||
+        error.status === 500;
       
-      // If not an overload error, or if we've run out of retries, throw
-      if (!isOverloaded || i === retries - 1) {
+      // If not a retryable error, or if we've run out of retries, throw
+      if (!isRetryable || i === retries - 1) {
         throw error;
       }
       
       const delay = baseDelay * Math.pow(2, i);
-      console.warn(`Gemini API overloaded. Retrying in ${delay}ms... (Attempt ${i + 1}/${retries})`);
+      console.warn(`Gemini API error (${msg}). Retrying in ${delay}ms... (Attempt ${i + 1}/${retries})`);
       await sleep(delay);
     }
   }
@@ -177,10 +180,17 @@ export const generateFashionVideo = async (
       try {
         operation = await ai.operations.getVideosOperation({ operation: operation });
       } catch (error: any) {
-        // If polling fails due to overload, just log and continue (retry in next loop)
+        // If polling fails due to overload or internal error, just log and continue (retry in next loop)
         const msg = error.message || '';
-        if (msg.includes('overloaded') || msg.includes('429') || msg.includes('503')) {
-          console.warn("Polling overloaded, skipping this tick...");
+        const isRetryable = 
+            msg.includes('overloaded') || 
+            msg.includes('internal server issue') ||
+            msg.includes('429') || 
+            msg.includes('503') || 
+            msg.includes('500');
+
+        if (isRetryable) {
+          console.warn("Polling encountered temporary error, skipping this tick...", msg);
           continue;
         }
         throw error;
