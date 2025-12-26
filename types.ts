@@ -1,11 +1,12 @@
 export type Gender = 'female' | 'male';
 
-export type AssetType = 'top' | 'bottom' | 'shoes';
+export type AssetType = 'top' | 'bottom' | 'shoes' | 'accessories';
 
 export interface UploadedAssets {
   top?: File;
   bottom?: File;
   shoes?: File;
+  accessories?: File;
 }
 
 export interface ModelOption {
@@ -18,14 +19,20 @@ export interface ModelOption {
 export type VideoAspectRatio = '9:16' | '16:9';
 export type VideoResolution = '720p' | '1080p';
 
+export type BodyType = 'slim' | 'athletic' | 'curvy' | 'plus' | 'tall' | 'petite';
+
+export type GenerationMode = 'video' | 'image';
+
 export interface GenerationConfig {
+  mode: GenerationMode; // Switch between video and image
   prompt: string;
   gender: Gender;
   modelId: string;
+  bodyType: BodyType;
   cameraAngle: string;
   style: string;
   aspectRatio: VideoAspectRatio;
-  materialDesc: string; // New field for fabric description
+  materialDesc: string;
 }
 
 export interface GeneratedVideo {

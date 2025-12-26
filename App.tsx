@@ -3,22 +3,24 @@ import UploadZone from './components/UploadZone';
 import ConfigPanel from './components/ConfigPanel';
 import VideoResult from './components/VideoResult';
 import { GenerationConfig, AppStatus, UploadedAssets, AssetType } from './types';
-import { generateFashionVideo, checkApiKeySelection, promptSelectApiKey } from './services/geminiService';
-import { IconSparkles } from './components/Icons';
+import { generateFashionVideo, generateFashionImage, checkApiKeySelection, promptSelectApiKey } from './services/geminiService';
+import { IconSparkles, IconImage, IconVideo } from './components/Icons';
 
 const App: React.FC = () => {
   // State
   const [assets, setAssets] = useState<UploadedAssets>({});
   const [status, setStatus] = useState<AppStatus>('idle');
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [hasApiKey, setHasApiKey] = useState<boolean>(false);
 
   // Configuration State
   const [config, setConfig] = useState<GenerationConfig>({
+    mode: 'video', // Default to video
     prompt: '',
     gender: 'female',
     modelId: 'sofia', // Default model
+    bodyType: 'slim', // Default body type
     cameraAngle: 'Tracking shot',
     style: 'runway',
     aspectRatio: '9:16',
@@ -71,18 +73,23 @@ const App: React.FC = () => {
 
     setStatus('uploading');
     setErrorMsg(null);
-    setVideoUrl(null);
+    setResultUrl(null);
 
     try {
       setStatus('generating');
       
-      const resultUri = await generateFashionVideo(assets, config);
+      let resultUri = '';
+      if (config.mode === 'video') {
+         resultUri = await generateFashionVideo(assets, config);
+      } else {
+         resultUri = await generateFashionImage(assets, config);
+      }
       
-      setVideoUrl(resultUri);
+      setResultUrl(resultUri);
       setStatus('success');
     } catch (error: any) {
       console.error(error);
-      setErrorMsg(error.message || "生成视频时发生错误");
+      setErrorMsg(error.message || "生成失败，请重试");
       setStatus('error');
       
       if (error.message?.includes("API Key")) {
@@ -95,8 +102,9 @@ const App: React.FC = () => {
   const hasAssets = Object.keys(assets).length > 0;
   const isMultiAsset = Object.keys(assets).length > 1;
 
-  // Derive effective aspect ratio for preview (Multi-asset forces 16:9)
-  const effectiveAspectRatio = isMultiAsset ? '16:9' : config.aspectRatio;
+  // Derive effective aspect ratio for preview 
+  // (Multi-asset VIDEO forces 16:9, but IMAGE can do any)
+  const effectiveAspectRatio = (config.mode === 'video' && isMultiAsset) ? '16:9' : config.aspectRatio;
 
   return (
     <div className="min-h-screen w-full bg-[#0f0f11] text-gray-200 font-sans selection:bg-brand-500/30">
@@ -144,9 +152,9 @@ const App: React.FC = () => {
                 onChange={setConfig}
                 disabled={isProcessing}
               />
-              {isMultiAsset && (
+              {config.mode === 'video' && isMultiAsset && (
                  <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-200">
-                    ℹ️ 多件展示模式将强制使用 16:9 横屏比例，生成时间可能稍长。
+                    ℹ️ 视频模式：多件展示将自动使用 16:9 横屏比例。
                  </div>
               )}
             </section>
@@ -172,8 +180,8 @@ const App: React.FC = () => {
                         </>
                     ) : (
                         <>
-                           <IconSparkles className="w-5 h-5" />
-                           {!hasApiKey ? '选择 API Key 并生成' : '开始生成视频'}
+                           {config.mode === 'video' ? <IconSparkles className="w-5 h-5" /> : <IconImage className="w-5 h-5" />}
+                           {!hasApiKey ? '配置 Key 并开始' : (config.mode === 'video' ? '开始生成视频' : '开始生成图片')}
                         </>
                     )}
                 </button>
@@ -184,9 +192,10 @@ const App: React.FC = () => {
           <div className="lg:col-span-7 lg:sticky lg:top-24 h-fit">
              <VideoResult 
                status={status} 
-               videoUrl={videoUrl} 
+               videoUrl={resultUrl} 
                aspectRatio={effectiveAspectRatio}
                errorMsg={errorMsg}
+               mode={config.mode}
              />
           </div>
 

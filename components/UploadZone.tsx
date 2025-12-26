@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { AssetType, UploadedAssets } from '../types';
-import { IconShirt, IconPants, IconFootwear, IconUpload } from './Icons';
+import { IconShirt, IconPants, IconFootwear, IconAccessories, IconUpload } from './Icons';
 
 interface UploadZoneProps {
   assets: UploadedAssets;
@@ -48,7 +48,6 @@ const UploadSlot: React.FC<{
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 z-20 pointer-events-none">
               <span className="text-white text-xs font-medium">点击更换</span>
             </div>
-             {/* Delete Button (clickable via z-index above input if needed, but simplest is just re-upload for now) */}
              <button 
                 onClick={(e) => {
                     e.preventDefault(); // Prevent opening file dialog
@@ -85,7 +84,7 @@ const UploadZone: React.FC<UploadZoneProps> = ({ assets, onAssetChange }) => {
         </div>
       </label>
       
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <UploadSlot 
           type="top" 
           label="上装" 
@@ -102,14 +101,21 @@ const UploadZone: React.FC<UploadZoneProps> = ({ assets, onAssetChange }) => {
         />
         <UploadSlot 
           type="shoes" 
-          label="鞋履/配饰" 
+          label="鞋履" 
           icon={<IconFootwear className="w-5 h-5" />}
           file={assets.shoes}
           onChange={(f) => onAssetChange('shoes', f)}
         />
+        <UploadSlot 
+          type="accessories" 
+          label="配饰/包袋" 
+          icon={<IconAccessories className="w-5 h-5" />}
+          file={assets.accessories}
+          onChange={(f) => onAssetChange('accessories', f)}
+        />
       </div>
       <p className="text-xs text-gray-500 mt-3 ml-1">
-        提示：同时上传多件单品时，将自动组合生成 (仅支持 16:9 画幅)。
+        提示：AI 将自动识别并组合所有上传的单品。
       </p>
     </div>
   );
